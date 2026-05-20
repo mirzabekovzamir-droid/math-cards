@@ -1,264 +1,264 @@
-// ============================================
-// СОСТОЯНИЕ ПРИЛОЖЕНИЯ
-// ============================================
-const state = {
-  view: 'classes',        // classes | topics | cards
-  currentClassId: null,
-  currentTopicId: null,
-  cardIndex: 0,
-  flipped: false,
-  progress: loadProgress()
-};
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
 
-// ============================================
-// РАБОТА С ПРОГРЕССОМ (localStorage)
-// ============================================
-function loadProgress() {
-  try {
-    const data = localStorage.getItem('mathProgress');
-    return data ? JSON.parse(data) : {};
-  } catch (e) {
-    return {};
-  }
+:root {
+  --primary: #4f46e5;
+  --primary-dark: #4338ca;
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --shadow: 0 4px 16px rgba(0,0,0,0.06);
 }
 
-function saveProgress() {
-  try {
-    localStorage.setItem('mathProgress', JSON.stringify(state.progress));
-  } catch (e) {
-    console.warn('Не удалось сохранить прогресс');
-  }
+body { background: var(--bg); color: var(--text); min-height: 100vh; }
+
+#app { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+/* ===== HERO ===== */
+.hero {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: white;
+  padding: 40px 32px;
+  border-radius: 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 10px 30px rgba(79,70,229,0.25);
+}
+.hero h1 { font-size: 32px; margin-bottom: 10px; font-weight: 700; }
+.hero p { font-size: 16px; opacity: 0.95; margin-bottom: 20px; }
+
+.stats-bar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.stat {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  padding: 14px 20px;
+  border-radius: 14px;
+  min-width: 110px;
+}
+.stat-num { font-size: 26px; font-weight: 700; }
+.stat-lbl { font-size: 13px; opacity: 0.9; }
+
+/* ===== GRID & TILES ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
 }
 
-function markCardLearned(classId, topicId, cardIndex) {
-  const key = `${classId}__${topicId}`;
-  if (!state.progress[key]) state.progress[key] = [];
-  if (!state.progress[key].includes(cardIndex)) {
-    state.progress[key].push(cardIndex);
-    saveProgress();
-  }
+.card-tile {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform .2s, box-shadow .2s;
+  border-left: 4px solid var(--primary);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.card-tile:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 28px rgba(79,70,229,0.18);
 }
 
-function isCardLearned(classId, topicId, cardIndex) {
-  const key = `${classId}__${topicId}`;
-  return state.progress[key]?.includes(cardIndex) || false;
+.tile-icon { font-size: 36px; margin-bottom: 6px; }
+.tile-title { font-size: 18px; font-weight: 700; color: var(--text); }
+.tile-desc { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.tile-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 8px;
 }
 
-function getTopicProgress(classId, topic) {
-  const key = `${classId}__${topic.id}`;
-  const learned = state.progress[key]?.length || 0;
-  return { learned, total: topic.cards.length };
+.progress-bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  transition: width .4s;
 }
 
-function getClassProgress(cls) {
-  let learned = 0, total = 0;
-  cls.topics.forEach(t => {
-    const p = getTopicProgress(cls.id, t);
-    learned += p.learned;
-    total += p.total;
-  });
-  return { learned, total };
+/* ===== BACK BUTTON ===== */
+.back-btn {
+  background: var(--card);
+  border: none;
+  padding: 10px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  transition: all .2s;
+}
+.back-btn:hover { background: var(--primary); color: white; transform: translateX(-2px); }
+
+/* ===== FLASHCARD ===== */
+.card-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.card-header h2 { font-size: 22px; margin-bottom: 6px; }
+.card-counter { color: var(--muted); font-size: 14px; }
+
+.flashcard {
+  perspective: 1500px;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto 24px;
+  height: 360px;
+  cursor: pointer;
 }
 
-// ============================================
-// РЕНДЕР: ЭКРАН КЛАССОВ
-// ============================================
-function renderClasses() {
-  const app = document.getElementById('app');
-  const totalCards = COURSE_DATA.reduce((sum, cls) =>
-    sum + cls.topics.reduce((s, t) => s + t.cards.length, 0), 0
-  );
-  const totalLearned = COURSE_DATA.reduce((sum, cls) =>
-    sum + getClassProgress(cls).learned, 0
-  );
-
-  app.innerHTML = `
-    <div class="hero">
-      <h1>📐 Математика РШМ</h1>
-      <p>Тренируйся с карточками: вопрос → ответ. Выбери класс и тему.</p>
-      <div class="stats-bar">
-        <div class="stat"><div class="stat-num">${COURSE_DATA.length}</div><div class="stat-lbl">разделов</div></div>
-        <div class="stat"><div class="stat-num">${totalCards}</div><div class="stat-lbl">карточек</div></div>
-        <div class="stat"><div class="stat-num">${totalLearned}</div><div class="stat-lbl">изучено</div></div>
-      </div>
-    </div>
-    <div class="grid">
-      ${COURSE_DATA.map(cls => {
-        const p = getClassProgress(cls);
-        const percent = p.total ? Math.round(p.learned / p.total * 100) : 0;
-        return `
-          <div class="card-tile" data-class-id="${cls.id}">
-            <div class="tile-icon">${cls.icon}</div>
-            <div class="tile-title">${cls.title}</div>
-            <div class="tile-desc">${cls.description}</div>
-            <div class="tile-meta">
-              <span>${cls.topics.length} тем</span>
-              <span>${p.learned}/${p.total}</span>
-            </div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${percent}%"></div></div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-
-  document.querySelectorAll('.card-tile').forEach(el => {
-    el.addEventListener('click', () => {
-      state.currentClassId = el.dataset.classId;
-      state.view = 'topics';
-      render();
-    });
-  });
+.flashcard-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform .6s;
+  transform-style: preserve-3d;
 }
 
-// ============================================
-// РЕНДЕР: ЭКРАН ТЕМ
-// ============================================
-function renderTopics() {
-  const app = document.getElementById('app');
-  const cls = COURSE_DATA.find(c => c.id === state.currentClassId);
-  if (!cls) { state.view = 'classes'; return render(); }
-
-  app.innerHTML = `
-    <button class="back-btn" id="backBtn">← К классам</button>
-    <div class="hero">
-      <h1>${cls.icon} ${cls.title}</h1>
-      <p>${cls.description}</p>
-    </div>
-    <div class="grid">
-      ${cls.topics.map(topic => {
-        const p = getTopicProgress(cls.id, topic);
-        const percent = p.total ? Math.round(p.learned / p.total * 100) : 0;
-        return `
-          <div class="card-tile" data-topic-id="${topic.id}">
-            <div class="tile-title">${topic.title}</div>
-            <div class="tile-meta">
-              <span>${topic.cards.length} карточек</span>
-              <span>${p.learned}/${p.total}</span>
-            </div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${percent}%"></div></div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-
-  document.getElementById('backBtn').addEventListener('click', () => {
-    state.view = 'classes';
-    state.currentClassId = null;
-    render();
-  });
-
-  document.querySelectorAll('.card-tile').forEach(el => {
-    el.addEventListener('click', () => {
-      state.currentTopicId = el.dataset.topicId;
-      state.cardIndex = 0;
-      state.flipped = false;
-      state.view = 'cards';
-      render();
-    });
-  });
+.flashcard.flipped .flashcard-inner {
+  transform: rotateY(180deg);
 }
 
-// ============================================
-// РЕНДЕР: ЭКРАН КАРТОЧЕК
-// ============================================
-function renderCards() {
-  const app = document.getElementById('app');
-  const cls = COURSE_DATA.find(c => c.id === state.currentClassId);
-  const topic = cls?.topics.find(t => t.id === state.currentTopicId);
-  if (!topic) { state.view = 'topics'; return render(); }
-
-  const card = topic.cards[state.cardIndex];
-  const total = topic.cards.length;
-  const learned = isCardLearned(cls.id, topic.id, state.cardIndex);
-
-  app.innerHTML = `
-    <button class="back-btn" id="backBtn">← К темам</button>
-    <div class="card-header">
-      <h2>${topic.title}</h2>
-      <div class="card-counter">Карточка ${state.cardIndex + 1} из ${total}</div>
-    </div>
-
-    <div class="flashcard ${state.flipped ? 'flipped' : ''}" id="flashcard">
-      <div class="flashcard-inner">
-        <div class="flashcard-side flashcard-front">
-          <div class="side-label">Вопрос</div>
-          <div class="side-content">${card.q}</div>
-          <div class="side-hint">Нажми, чтобы увидеть ответ</div>
-        </div>
-        <div class="flashcard-side flashcard-back">
-          <div class="side-label">Ответ</div>
-          <div class="side-content">${card.a}</div>
-          ${card.theory ? `<div class="theory">💡 ${card.theory}</div>` : ''}
-        </div>
-      </div>
-    </div>
-
-    <div class="card-controls">
-      <button class="nav-btn" id="prevBtn" ${state.cardIndex === 0 ? 'disabled' : ''}>← Назад</button>
-      <button class="learned-btn ${learned ? 'is-learned' : ''}" id="learnedBtn">
-        ${learned ? '✅ Выучено' : '☐ Отметить выученным'}
-      </button>
-      <button class="nav-btn" id="nextBtn" ${state.cardIndex === total - 1 ? 'disabled' : ''}>Вперёд →</button>
-    </div>
-  `;
-
-  document.getElementById('backBtn').addEventListener('click', () => {
-    state.view = 'topics';
-    state.currentTopicId = null;
-    render();
-  });
-
-  document.getElementById('flashcard').addEventListener('click', () => {
-    state.flipped = !state.flipped;
-    render();
-  });
-
-  document.getElementById('prevBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (state.cardIndex > 0) {
-      state.cardIndex--;
-      state.flipped = false;
-      render();
-    }
-  });
-
-  document.getElementById('nextBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (state.cardIndex < total - 1) {
-      state.cardIndex++;
-      state.flipped = false;
-      render();
-    }
-  });
-
-  document.getElementById('learnedBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    markCardLearned(cls.id, topic.id, state.cardIndex);
-    render();
-  });
+.flashcard-side {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 22px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 
-// ============================================
-// ОБЩИЙ РЕНДЕР + КЛАВИАТУРА
-// ============================================
-function render() {
-  if (state.view === 'classes') renderClasses();
-  else if (state.view === 'topics') renderTopics();
-  else if (state.view === 'cards') renderCards();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+.flashcard-front {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: white;
 }
 
-document.addEventListener('keydown', (e) => {
-  if (state.view !== 'cards') return;
-  if (e.key === 'ArrowLeft') document.getElementById('prevBtn')?.click();
-  if (e.key === 'ArrowRight') document.getElementById('nextBtn')?.click();
-  if (e.key === ' ' || e.key === 'Enter') {
-    e.preventDefault();
-    document.getElementById('flashcard')?.click();
-  }
-});
+.flashcard-back {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  transform: rotateY(180deg);
+}
 
-// СТАРТ
-render();
+.side-label {
+  position: absolute;
+  top: 18px;
+  left: 24px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+.side-content {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.4;
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+.side-hint {
+  position: absolute;
+  bottom: 18px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.theory {
+  margin-top: 18px;
+  background: rgba(255,255,255,0.18);
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* ===== CARD CONTROLS ===== */
+.card-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.nav-btn {
+  background: var(--card);
+  border: none;
+  padding: 12px 22px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  box-shadow: var(--shadow);
+  transition: all .2s;
+}
+.nav-btn:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-2px);
+}
+.nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.learned-btn {
+  background: var(--card);
+  border: 2px solid var(--success);
+  padding: 12px 22px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--success);
+  transition: all .2s;
+}
+.learned-btn:hover { background: var(--success); color: white; }
+.learned-btn.is-learned {
+  background: var(--success);
+  color: white;
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 640px) {
+  #app { padding: 14px; }
+  .hero { padding: 28px 20px; }
+  .hero h1 { font-size: 24px; }
+  .hero p { font-size: 14px; }
+  .flashcard { height: 320px; }
+  .flashcard-side { padding: 24px; }
+  .side-content { font-size: 18px; }
+  .card-tile { padding: 18px; }
+  .tile-icon { font-size: 30px; }
+  .tile-title { font-size: 16px; }
+  .nav-btn, .learned-btn { padding: 10px 16px; font-size: 13px; }
+  .card-controls { flex-direction: column; }
+  .card-controls button { width: 100%; }
+}
