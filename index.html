@@ -8,7 +8,23 @@
   <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
+  <header class="header">
+    <div class="logo">📐 Математика РШМ</div>
+    <nav class="nav">
+      <button class="nav-btn active" data-view="home">Главная</button>
+      <button class="nav-btn" data-view="review">На повторение <span class="badge" id="reviewBadge">0</span></button>
+      <button class="nav-btn" data-view="stats">Прогресс</button>
+    </nav>
+  </header>
+
   <main id="app"></main>
+
+  <div class="modal hidden" id="cardModal">
+    <div class="modal-content">
+      <button class="modal-close" id="modalClose">✕</button>
+      <div id="cardContent"></div>
+    </div>
+  </div>
 
   <script src="data.js"></script>
   <script src="app.js"></script>
